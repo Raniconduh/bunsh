@@ -2,6 +2,7 @@
 local unistd = require('posix.unistd')
 local wait = require('posix.sys.wait')
 local stdlib = require('posix.stdlib')
+local utsname = require('posix.sys.utsname')
 
 
 local environ = {}
@@ -126,6 +127,7 @@ euid = nil
 local host = io.open("/etc/hostname")
 environ["HOST"] = host:read()
 host:close()
+if not environ["HOST"] then environ["HOST"] = utsname.uname().nodename end
 
 for k, v in pairs(environ) do stdlib.setenv(k, v, true) end
 unistd.chdir(environ["PWD"])
