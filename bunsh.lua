@@ -132,12 +132,16 @@ if not environ["HOST"] then environ["HOST"] = utsname.uname().nodename end
 for k, v in pairs(environ) do stdlib.setenv(k, v, true) end
 unistd.chdir(environ["PWD"])
 
+local cmd_exit = 0
+
 while true do
 	local cwd = unistd.getcwd()
 	if cwd:sub(1, #environ["HOME"]) == environ["HOME"] then
 		cwd = "~"..cwd:sub(#environ["HOME"] + 1)
 	end
-	local prompt = "\27[32m"..environ["USER"].."\27[0m".."@"..environ["HOST"].." ".."\27[32m"..cwd.."\27[0m"..' > '
+	local prompt = "\27[32m"..environ["USER"].."\27[0m".."@"..environ["HOST"].." ".."\27[32m"..cwd.."\27[0m"
+	if cmd_exit ~= 0 then prompt = prompt..' \27[31m['..cmd_exit..']\27[0m' end
+	prompt = prompt..' > '
 	io.write(prompt)
 	local input = io.read()
 
@@ -190,7 +194,7 @@ while true do
 		print(b)
 		os.exit(0)
 	else
-		wait.wait(pid)
+		cmd_exit = select(3, wait.wait(pid))
 	end
 --]]
 --[[
