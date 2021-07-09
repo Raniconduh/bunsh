@@ -5,6 +5,20 @@ local stdlib = require('posix.stdlib')
 local utsname = require('posix.sys.utsname')
 
 
+local debug = false
+
+
+if arg[1] == '-h' or arg[1] == '--help' then
+	print("bunsh: the bun shell")
+	print("Options:")
+	print("  -h, --help\t\tShow this screen and exit")
+	print("  -d, --debug\t\tPrint debug information after each command")
+	os.exit(0)
+elseif arg[1] == '-d' or arg[1] == '--debug' then
+	debug= true
+end
+
+
 local environ = {}
 local aliases = {}
 
@@ -100,6 +114,7 @@ function getargs(input)
 end
 
 
+-- return the index of the first pipe in args
 function findpipe(args)
 	for i = 1, #args do
 		if args[i] == '|' then return i end
@@ -110,6 +125,7 @@ end
 -- get user / home directory info
 local passwd = io.open('/etc/passwd')
 local euid = unistd.geteuid()
+
 for line in passwd:lines() do
 	local split = {}
 	for segment in line:gmatch('([^:]+)') do
@@ -122,12 +138,15 @@ for line in passwd:lines() do
 	end
 end
 passwd:close()
-passwd = nil
-euid = nil
+
+
 local host = io.open("/etc/hostname")
-environ["HOST"] = host:read()
-host:close()
-if not environ["HOST"] then environ["HOST"] = utsname.uname().nodename end
+if host then
+	environ["HOST"] = host:read()
+	host:close()
+else
+	environ["HOST"] = utsname.uname().nodename
+end
 
 for k, v in pairs(environ) do stdlib.setenv(k, v, true) end
 unistd.chdir(environ["PWD"])
@@ -186,6 +205,10 @@ while true do
 			end
 		end
 	end
+
+	-- convert a command with pipes into multiple commands
+	--parse_pipe(command, args)
+
 ---[[
 	-- execute command
 	local pid = unistd.fork()
@@ -197,13 +220,14 @@ while true do
 		cmd_exit = select(3, wait.wait(pid))
 	end
 --]]
---[[
-	print("command: "..command)
-	print("args:")
-	for k, v in pairs(args) do
-		print(k..". "..v)
+	
+	if debug then
+		print("command: "..command)
+		print("args:")
+		for k, v in pairs(args) do
+			print(k..". "..v)
+		end
 	end
---]]
 	::continue::
 end
 
